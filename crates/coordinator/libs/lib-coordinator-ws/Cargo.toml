@@ -1,0 +1,23 @@
+[package]
+name = "lib-coordinator-ws"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lib-coordinator-core = { path = "../../libs/lib-coordinator-core" }
+lib-coordinator-rest = { path = "../../libs/lib-coordinator-rest" }
+proto = { path = "../../../proto" }
+
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.8.4", features = ["ws"] }
+dashmap = "6.1.0"
+futures-util = { version = "0.3", features = ["std"] }
+tokio-stream = "0.1"
+tracing = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_with = "3"
+uuid = { version = "1", features = ["v4"] }
+
+[lints]
+workspace = true

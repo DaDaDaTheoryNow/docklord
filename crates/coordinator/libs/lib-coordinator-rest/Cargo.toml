@@ -1,0 +1,17 @@
+[package]
+name = "lib-coordinator-rest"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lib-coordinator-core = { path = "../../libs/lib-coordinator-core" }
+proto = { path = "../../../proto" }
+axum = { version = "0.8.4", features = ["ws"] }
+serde = { version = "1.0", features = ["derive"] }
+tracing = "0.1"
+uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["full"] }
+serde_json = "1"
+
+[lints]
+workspace = true

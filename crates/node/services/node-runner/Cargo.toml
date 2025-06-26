@@ -1,0 +1,18 @@
+[package]
+name = "node-runner"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+proto = { path = "../../../proto" }
+bollard = "0.19.1"
+tokio = { version = "1", features = ["full"] }
+futures-util = "0.3"
+tokio-stream = "0.1"
+tonic = "0.11"
+tracing = "0.1"
+lib-node-containers = { path = "../../libs/lib-node-containers" }
+lib-node-grpc = { path = "../../libs/lib-node-grpc" }
+
+[lints]
+workspace = true

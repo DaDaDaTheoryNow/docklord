@@ -1,0 +1,23 @@
+[package]
+name = "coordinator-runner"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lib-coordinator-core = { path = "../../libs/lib-coordinator-core" }
+lib-coordinator-grpc = { path = "../../libs/lib-coordinator-grpc" }
+lib-coordinator-ws = { path = "../../libs/lib-coordinator-ws" }
+lib-coordinator-rest = { path = "../../libs/lib-coordinator-rest" }
+proto = { path = "../../../proto" }
+
+axum = { version = "0.8.4" }
+dashmap = "6.1.0"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tonic = "0.11"
+prost = "0.12"
+serde = { version = "1", features = ["derive"] }
+uuid = { version = "1" }
+
+[lints]
+workspace = true

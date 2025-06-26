@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package conversation;
+
+service ConversationService {
+  rpc Conversation(stream Envelope) returns (stream Envelope) {}
+}
+
+message Envelope {
+  oneof payload {
+    ServerCommand server_command = 1;
+    ClientCommand client_command = 2;
+    ServerResponse server_response = 3;
+    ClientResponse client_response = 4;
+  }
+}
+
+message ServerCommand {
+  oneof kind {
+    GetServerStatus get_server_status = 1;
+    AuthRequest auth_request = 2;
+  }
+}
+
+message ClientCommand {
+  oneof kind {
+    GetClientContainers get_client_containers = 1;
+  }
+}
+
+message ServerResponse {
+  oneof kind {
+    ServerStatus server_status = 1;
+    AuthResponse auth_response = 2;
+  }
+}
+
+message ClientResponse {
+  oneof kind {
+    ClientContainers client_containers = 1;
+  }
+}
+
+message GetServerStatus {}
+message GetClientContainers {
+  string request_id = 1;
+}
+
+message AuthRequest {
+  string client_id = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ServerStatus {
+  string status = 1; // example: "running"
+  string uptime = 2; // example: 16 hours 5 min
+}
+
+message ClientContainers {
+  RequestKey request_key = 1;
+  repeated string containers = 2;
+}
+
+enum RequestType {
+  UNSPECIFIED = 0;
+  GET_CONTAINERS = 1;
+  UPDATE_CONTAINER_INFO = 2;
+}
+
+message RequestKey {
+  RequestType request_type = 1;
+  oneof request_id {
+    string value = 2;
+    bool unspecific = 3;
+  }
+}

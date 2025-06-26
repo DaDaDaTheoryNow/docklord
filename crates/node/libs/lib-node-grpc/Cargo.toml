@@ -1,0 +1,16 @@
+[package]
+name = "lib-node-grpc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+proto = { path = "../../../proto" }
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+lib-node-containers = { path = "../lib-node-containers" }
+tonic = "0.11"
+tokio-stream = "0.1"
+futures-util = "0.3"
+
+[lints]
+workspace = true
