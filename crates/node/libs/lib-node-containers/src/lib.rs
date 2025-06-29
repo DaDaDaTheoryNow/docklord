@@ -2,10 +2,8 @@ use bollard::query_parameters::{EventsOptionsBuilder, ListContainersOptionsBuild
 use bollard::{Docker, secret::EventMessageTypeEnum};
 use futures_util::stream::TryStreamExt;
 use proto::generated::request_key::RequestId;
-use proto::generated::{
-    ClientContainers, ClientResponse, Envelope, client_response, envelope::Payload,
-};
-use proto::generated::{RequestKey, RequestType};
+use proto::generated::{Envelope, envelope::Payload};
+use proto::generated::{NodeContainers, NodeResponse, RequestKey, RequestType, node_response};
 use std::error::Error;
 use tokio::sync::mpsc;
 use tracing::{error, info};
@@ -27,16 +25,14 @@ pub async fn watch_container_changes(tx: mpsc::Sender<Envelope>) -> Result<(), B
                         let containers = get_docker_containers().await.unwrap_or_default();
 
                         let envelope = Envelope {
-                            payload: Some(Payload::ClientResponse(ClientResponse {
-                                kind: Some(client_response::Kind::ClientContainers(
-                                    ClientContainers {
-                                        containers,
-                                        request_key: Some(RequestKey {
-                                            request_type: RequestType::UpdateContainerInfo as i32,
-                                            request_id: Some(RequestId::Unspecific(true)),
-                                        }),
-                                    },
-                                )),
+                            payload: Some(Payload::NodeResponse(NodeResponse {
+                                kind: Some(node_response::Kind::NodeContainers(NodeContainers {
+                                    containers,
+                                    request_key: Some(RequestKey {
+                                        request_type: RequestType::UpdateContainerInfo as i32,
+                                        request_id: Some(RequestId::Unspecific(true)),
+                                    }),
+                                })),
                             })),
                         };
                         if tx.send(envelope).await.is_err() {

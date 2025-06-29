@@ -7,6 +7,6 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct AuthParams {
-    pub client_id: String,
+    pub node_id: String,
     pub password: String,
 }

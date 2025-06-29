@@ -10,6 +10,7 @@ coordinator-runner = { path = "../../coordinator/services/coordinator-runner" }
 node-runner = { path = "../../node/services/node-runner" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+rand = "0.9.1"
 
 [lints]
 workspace = true

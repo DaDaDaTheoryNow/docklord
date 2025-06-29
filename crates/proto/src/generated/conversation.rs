@@ -13,11 +13,11 @@ pub mod envelope {
         #[prost(message, tag = "1")]
         ServerCommand(super::ServerCommand),
         #[prost(message, tag = "2")]
-        ClientCommand(super::ClientCommand),
+        NodeCommand(super::NodeCommand),
         #[prost(message, tag = "3")]
         ServerResponse(super::ServerResponse),
         #[prost(message, tag = "4")]
-        ClientResponse(super::ClientResponse),
+        NodeResponse(super::NodeResponse),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -39,17 +39,17 @@ pub mod server_command {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ClientCommand {
-    #[prost(oneof = "client_command::Kind", tags = "1")]
-    pub kind: ::core::option::Option<client_command::Kind>,
+pub struct NodeCommand {
+    #[prost(oneof = "node_command::Kind", tags = "1")]
+    pub kind: ::core::option::Option<node_command::Kind>,
 }
-/// Nested message and enum types in `ClientCommand`.
-pub mod client_command {
+/// Nested message and enum types in `NodeCommand`.
+pub mod node_command {
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Kind {
         #[prost(message, tag = "1")]
-        GetClientContainers(super::GetClientContainers),
+        GetNodeContainers(super::GetNodeContainers),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -71,17 +71,17 @@ pub mod server_response {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ClientResponse {
-    #[prost(oneof = "client_response::Kind", tags = "1")]
-    pub kind: ::core::option::Option<client_response::Kind>,
+pub struct NodeResponse {
+    #[prost(oneof = "node_response::Kind", tags = "1")]
+    pub kind: ::core::option::Option<node_response::Kind>,
 }
-/// Nested message and enum types in `ClientResponse`.
-pub mod client_response {
+/// Nested message and enum types in `NodeResponse`.
+pub mod node_response {
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Kind {
         #[prost(message, tag = "1")]
-        ClientContainers(super::ClientContainers),
+        NodeContainers(super::NodeContainers),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -89,7 +89,7 @@ pub mod client_response {
 pub struct GetServerStatus {}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetClientContainers {
+pub struct GetNodeContainers {
     #[prost(string, tag = "1")]
     pub request_id: ::prost::alloc::string::String,
 }
@@ -97,7 +97,7 @@ pub struct GetClientContainers {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AuthRequest {
     #[prost(string, tag = "1")]
-    pub client_id: ::prost::alloc::string::String,
+    pub node_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub password: ::prost::alloc::string::String,
 }
@@ -121,7 +121,7 @@ pub struct ServerStatus {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ClientContainers {
+pub struct NodeContainers {
     #[prost(message, optional, tag = "1")]
     pub request_key: ::core::option::Option<RequestKey>,
     #[prost(string, repeated, tag = "2")]

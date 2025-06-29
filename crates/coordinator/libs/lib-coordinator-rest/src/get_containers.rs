@@ -1,7 +1,7 @@
 use axum::{Extension, Json, extract::Query, response::IntoResponse};
 use lib_coordinator_core::{PendingResponses, ServerRequestByUser};
 use proto::generated::{
-    ClientCommand, Envelope, GetClientContainers, RequestType, client_command, envelope::Payload,
+    Envelope, GetNodeContainers, NodeCommand, RequestType, envelope::Payload, node_command,
 };
 use serde_json::json;
 use tokio::sync::{broadcast, oneshot};
@@ -26,21 +26,19 @@ pub async fn get_containers(
         response_tx,
     );
 
-    // Build the command envelope to ask the client for containers
+    // Build the command envelope to ask the node for containers
     let envelope = Envelope {
-        payload: Some(Payload::ClientCommand(ClientCommand {
-            kind: Some(client_command::Kind::GetClientContainers(
-                GetClientContainers {
-                    request_id: request_id.clone(),
-                },
-            )),
+        payload: Some(Payload::NodeCommand(NodeCommand {
+            kind: Some(node_command::Kind::GetNodeContainers(GetNodeContainers {
+                request_id: request_id.clone(),
+            })),
         })),
     };
 
-    // Send the request to the client via broadcast
+    // Send the request to the node via broadcast
     let send_result = server_tx
         .send(ServerRequestByUser {
-            id: query.client_id.clone(),
+            id: query.node_id.clone(),
             password: query.password.clone(),
             envelope,
         })
@@ -56,7 +54,7 @@ pub async fn get_containers(
             .into_response();
     }
 
-    // Wait for the response from the client with a timeout
+    // Wait for the response from the node with a timeout
     match tokio::time::timeout(GET_CONTAINERS_TIMEOUT, response_rx).await {
         Ok(Ok(response)) => {
             // Парсим список контейнеров из ответа (например, из proto)
@@ -73,7 +71,7 @@ pub async fn get_containers(
                     "message": "Response channel closed",
                     "data": {
                         "req_uuid": request_id,
-                        "detail": "Client dropped oneshot channel"
+                        "detail": "Node dropped oneshot channel"
                     }
                 }
             });
@@ -82,10 +80,10 @@ pub async fn get_containers(
         Err(_) => {
             let body = json!({
                 "error": {
-                    "message": "No response from client",
+                    "message": "No response from node",
                     "data": {
                         "req_uuid": request_id,
-                        "detail": "Timeout waiting for client response"
+                        "detail": "Timeout waiting for node response"
                     }
                 }
             });
@@ -95,11 +93,9 @@ pub async fn get_containers(
 }
 
 fn extract_containers_from_response(response: &Envelope) -> Vec<String> {
-    if let Some(proto::generated::envelope::Payload::ClientResponse(client_resp)) =
-        &response.payload
-    {
-        if let Some(proto::generated::client_response::Kind::ClientContainers(containers_msg)) =
-            &client_resp.kind
+    if let Some(proto::generated::envelope::Payload::NodeResponse(node_resp)) = &response.payload {
+        if let Some(proto::generated::node_response::Kind::NodeContainers(containers_msg)) =
+            &node_resp.kind
         {
             return containers_msg.containers.clone();
         }

@@ -1,18 +1,19 @@
-pub async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let client_id = "client1";
-    let password = "secret123";
-
+pub async fn run(
+    coordinator_address: &str,
+    node_id: &str,
+    password: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!(
         "==============================\n\
 🚀 Node started!\n\
-Use these credentials to connect via Coordinator:\n\
-  client_id:   {}\n\
+Use these credentials to connect via Coordinator ({}):\n\
+  node_id:   {}\n\
   password:  {}\n\
 ==============================",
-        client_id, password
+        coordinator_address, node_id, password
     );
 
     println!("");
 
-    lib_node_grpc::run_grpc_client("http://[::1]:50051", client_id, password).await
+    lib_node_grpc::run_grpc_client(coordinator_address, node_id, password).await
 }

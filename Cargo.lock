@@ -560,6 +560,7 @@ dependencies = [
  "clap",
  "coordinator-runner",
  "node-runner",
+ "rand 0.9.1",
  "tokio",
  "tracing",
  "tracing-subscriber",

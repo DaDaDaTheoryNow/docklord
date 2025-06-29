@@ -9,9 +9,9 @@ service ConversationService {
 message Envelope {
   oneof payload {
     ServerCommand server_command = 1;
-    ClientCommand client_command = 2;
+    NodeCommand node_command = 2;
     ServerResponse server_response = 3;
-    ClientResponse client_response = 4;
+    NodeResponse node_response = 4;
   }
 }
 
@@ -22,9 +22,9 @@ message ServerCommand {
   }
 }
 
-message ClientCommand {
+message NodeCommand {
   oneof kind {
-    GetClientContainers get_client_containers = 1;
+    GetNodeContainers get_node_containers = 1;
   }
 }
 
@@ -35,19 +35,19 @@ message ServerResponse {
   }
 }
 
-message ClientResponse {
+message NodeResponse {
   oneof kind {
-    ClientContainers client_containers = 1;
+    NodeContainers node_containers = 1;
   }
 }
 
 message GetServerStatus {}
-message GetClientContainers {
+message GetNodeContainers {
   string request_id = 1;
 }
 
 message AuthRequest {
-  string client_id = 1;
+  string node_id = 1;
   string password = 2;
 }
 
@@ -61,7 +61,7 @@ message ServerStatus {
   string uptime = 2; // example: 16 hours 5 min
 }
 
-message ClientContainers {
+message NodeContainers {
   RequestKey request_key = 1;
   repeated string containers = 2;
 }

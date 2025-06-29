@@ -3,19 +3,23 @@ use std::error::Error;
 use futures_util::StreamExt;
 use lib_node_containers::{get_docker_containers, watch_container_changes};
 use proto::generated::{
-    AuthRequest, ClientContainers, ClientResponse, Envelope, RequestKey, RequestType,
-    ServerCommand, client_command, client_response,
-    conversation_service_client::ConversationServiceClient, envelope::Payload,
-    request_key::RequestId, server_command, server_response,
+    AuthRequest, Envelope, NodeContainers, NodeResponse, RequestKey, RequestType, ServerCommand,
+    conversation_service_client::ConversationServiceClient, envelope::Payload, node_command,
+    node_response, request_key::RequestId, server_command, server_response,
 };
 use tokio::sync::{mpsc, oneshot};
 use tokio_stream;
 use tonic::transport::Channel;
 use tracing::{error, info};
 
+// Алиасы для упрощения
+use node_command::Kind as NodeCommandKind;
+use node_response::Kind as NodeResponseKind;
+use server_response::Kind as ServerResponseKind;
+
 pub async fn run_grpc_client(
     address: &str,
-    client_id: &str,
+    node_id: &str,
     password: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let address_owned = address.to_string();
@@ -33,7 +37,7 @@ pub async fn run_grpc_client(
     let auth_envelope = Envelope {
         payload: Some(Payload::ServerCommand(ServerCommand {
             kind: Some(server_command::Kind::AuthRequest(AuthRequest {
-                client_id: client_id.into(),
+                node_id: node_id.into(),
                 password: password.into(),
             })),
         })),
@@ -104,13 +108,13 @@ pub async fn handle_get_client_containers(
 ) -> Result<(), String> {
     let containers = get_docker_containers().await.unwrap_or_default();
     let response = Envelope {
-        payload: Some(Payload::ClientResponse(ClientResponse {
-            kind: Some(client_response::Kind::ClientContainers(ClientContainers {
+        payload: Some(Payload::NodeResponse(NodeResponse {
+            kind: Some(NodeResponseKind::NodeContainers(NodeContainers {
                 request_key: Some(RequestKey {
                     request_type: RequestType::GetContainers as i32,
                     request_id: Some(RequestId::Value(request_id)),
                 }),
-                containers: containers,
+                containers,
             })),
         })),
     };
@@ -127,20 +131,20 @@ pub async fn process_incoming_message(
     tx: &mpsc::Sender<Envelope>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     match envelope.payload {
-        Some(Payload::ClientCommand(cmd)) => match cmd.kind {
-            Some(client_command::Kind::GetClientContainers(get_containers_request)) => {
+        Some(Payload::NodeCommand(cmd)) => match cmd.kind {
+            Some(NodeCommandKind::GetNodeContainers(get_containers_request)) => {
                 handle_get_client_containers(tx, get_containers_request.request_id).await?;
             }
             _ => info!("Unknown client command"),
         },
         Some(Payload::ServerResponse(resp)) => {
-            if let Some(server_response::Kind::ServerStatus(status)) = &resp.kind {
+            if let Some(ServerResponseKind::ServerStatus(status)) = &resp.kind {
                 info!(
                     "Server status: {}, uptime: {}",
                     status.status, status.uptime
                 );
             }
-            if let Some(server_response::Kind::AuthResponse(response)) = &resp.kind {
+            if let Some(ServerResponseKind::AuthResponse(response)) = &resp.kind {
                 info!(
                     "Auth result: {}, message: {}",
                     response.success, response.message
