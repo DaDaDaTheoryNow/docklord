@@ -19,6 +19,7 @@ use tokio::sync::broadcast::{
     self,
     error::{self, RecvError},
 };
+use tokio::time::{Duration, interval};
 use tracing::{error, info};
 use uuid::Uuid;
 
@@ -66,12 +67,15 @@ async fn handle_socket(
     let mut broadcast_rx = node_tx.subscribe();
     info!("📡 Containers observing for node: {}", node_id);
 
+    let mut ping_interval = interval(Duration::from_secs(20));
+
     // Main loop: handle both node and server messages
     loop {
         tokio::select! {
             // Handle incoming messages from the WebSocket node
             msg = ws_receiver.next() => {
                 if !handle_node_message(msg, &mut ws_sender).await {
+                    let _ = ws_sender.send(Message::Close(None)).await;
                     break;
                 }
             }
@@ -79,6 +83,14 @@ async fn handle_socket(
             // Handle messages from the server (container updates)
             msg = broadcast_rx.recv() => {
                 if !handle_server_message(msg, &mut ws_sender, &node_id).await {
+                    let _ = ws_sender.send(Message::Close(None)).await;
+                    break;
+                }
+            }
+
+            _ = ping_interval.tick() => {
+                if ws_sender.send(Message::Ping(axum::body::Bytes::new())).await.is_err() {
+                    error!("Failed to send Ping to node {}", node_id);
                     break;
                 }
             }

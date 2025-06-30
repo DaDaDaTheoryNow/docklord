@@ -224,10 +224,14 @@ async fn handle_node_response(
         }
     }
 
+    info!("Get updates of containers: {:?}", resp);
+
     // Broadcast to node
     // If it's not the rest request
     if let (Some(id), Some(password)) = (&auth.id, &auth.password) {
         if let Some(node) = nodes.get(&(id.clone(), password.clone())) {
+            info!("Get updates of containers: {:?}", resp);
+
             let envelope = Envelope {
                 payload: Some(Payload::NodeResponse(resp)),
             };
