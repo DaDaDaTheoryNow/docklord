@@ -1,11 +1,17 @@
+// --- Proto definitions for Docklord container management ---
+// The following proto was extended by an AI assistant (GPT-4) at the user's request.
+// It includes commands for container status, start/stop/delete, and logs with detailed options.
+
 syntax = "proto3";
 
 package conversation;
 
+// Main gRPC service for bidirectional communication
 service ConversationService {
   rpc Conversation(stream Envelope) returns (stream Envelope) {}
 }
 
+// Envelope wraps all possible messages between server and node
 message Envelope {
   oneof payload {
     ServerCommand server_command = 1;
@@ -15,6 +21,7 @@ message Envelope {
   }
 }
 
+// Commands sent from server to node
 message ServerCommand {
   oneof kind {
     GetServerStatus get_server_status = 1;
@@ -22,12 +29,20 @@ message ServerCommand {
   }
 }
 
+// Commands sent from node to server (AI-extended)
 message NodeCommand {
   oneof kind {
-    GetNodeContainers get_node_containers = 1;
+    GetNodeContainers get_node_containers = 1; // List all containers
+    GetNodeContainersWithStatus get_node_containers_with_status = 2; // List containers with status
+    GetContainerStatus get_container_status = 3; // Get detailed status
+    StartContainer start_container = 4; // Start container
+    StopContainer stop_container = 5; // Stop container
+    DeleteContainer delete_container = 6; // Delete container
+    GetContainerLogs get_container_logs = 7; // Get logs with options
   }
 }
 
+// Responses from server to node
 message ServerResponse {
   oneof kind {
     ServerStatus server_status = 1;
@@ -35,15 +50,56 @@ message ServerResponse {
   }
 }
 
+// Responses from node to server (AI-extended)
 message NodeResponse {
   oneof kind {
-    NodeContainers node_containers = 1;
+    NodeContainers node_containers = 1; // List of containers
+    NodeContainersWithStatus node_containers_with_status = 2; // List with status
+    ContainerStatus container_status = 3; // Detailed status
+    ContainerLogs container_logs = 4; // Logs
+    ContainerAction container_action = 5; // Result of start/stop/delete
+    NodeError error = 6;
   }
 }
 
+// --- Command/response message definitions ---
 message GetServerStatus {}
 message GetNodeContainers {
   string request_id = 1;
+}
+
+// New command to get containers with their statuses (AI-extended)
+message GetNodeContainersWithStatus {
+  string request_id = 1;
+}
+
+message GetContainerStatus {
+  string request_id = 1;
+  string container_id = 2;
+}
+
+message StartContainer {
+  string request_id = 1;
+  string container_id = 2;
+}
+
+message StopContainer {
+  string request_id = 1;
+  string container_id = 2;
+}
+
+message DeleteContainer {
+  string request_id = 1;
+  string container_id = 2;
+}
+
+// Log request supports tail, follow, since (AI-extended)
+message GetContainerLogs {
+  string request_id = 1;
+  string container_id = 2;
+  int32 tail = 3;  // number of last lines
+  bool follow = 4;  // stream logs in real time
+  string since = 5; // show logs since this time (RFC3339)
 }
 
 message AuthRequest {
@@ -56,6 +112,7 @@ message AuthResponse {
   string message = 2;
 }
 
+// --- Status/response message definitions ---
 message ServerStatus {
   string status = 1; // example: "running"
   string uptime = 2; // example: 16 hours 5 min
@@ -66,12 +123,58 @@ message NodeContainers {
   repeated string containers = 2;
 }
 
+// New response with containers and their statuses (AI-extended)
+message NodeContainersWithStatus {
+  RequestKey request_key = 1;
+  repeated ContainerStatus containers = 2;
+}
+
+// Detailed container status (AI-extended)
+message ContainerStatus {
+  RequestKey request_key = 1;
+  string container_id = 2;
+  string status = 3; // "running", "stopped", "exited", etc.
+  int64 created = 4; // creation timestamp
+  int64 started_at = 5; // start timestamp
+  int64 finished_at = 6; // finish timestamp
+  int32 exit_code = 7; // exit code if finished
+}
+
+// Container logs (AI-extended)
+message ContainerLogs {
+  RequestKey request_key = 1;
+  string container_id = 2;
+  repeated string logs = 3;
+}
+
+// Result of start/stop/delete (AI-extended)
+message ContainerAction {
+  RequestKey request_key = 1;
+  string container_id = 2;
+  string action = 3; // "start", "stop", "delete"
+  string message = 4; // error message if success = false
+}
+
+// Error message for failed operations
+message NodeError {
+  RequestKey request_key = 1;
+  string message = 2;
+}
+
+// --- Request type enum for all supported actions ---
 enum RequestType {
   UNSPECIFIED = 0;
   GET_CONTAINERS = 1;
   UPDATE_CONTAINER_INFO = 2;
+  GET_CONTAINER_STATUS = 3;
+  START_CONTAINER = 4;
+  STOP_CONTAINER = 5;
+  DELETE_CONTAINER = 6;
+  GET_CONTAINER_LOGS = 7;
+  GET_CONTAINERS_WITH_STATUS = 8;
 }
 
+// Used to correlate requests and responses
 message RequestKey {
   RequestType request_type = 1;
   oneof request_id {

@@ -81,8 +81,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         "node" => {
             info!("Running Node");
             info!("Coordinator address: {}", coordinator_addr);
-            info!("Node ID: {}", node_id);
-            info!("Password: {}", password);
             println!("");
 
             node_runner::run(&coordinator_addr, &node_id, &password).await?;
@@ -93,8 +91,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
             info!("gRPC port: {}", grpc_port);
             info!("API port: {}", api_port);
-            info!("Node ID: {}", node_id);
-            info!("Password: {}", password);
             println!("");
 
             let grpc_addr = format!("0.0.0.0:{}", grpc_port);
@@ -116,6 +112,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
             let node_handle = tokio::spawn(async move {
                 node_runner::run(&local_coordinator_addr, &node_id, &password).await
+                // node_runner::run(&local_coordinator_addr, "1", "123").await
             });
 
             tokio::select! {

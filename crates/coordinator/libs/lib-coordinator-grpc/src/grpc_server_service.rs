@@ -247,6 +247,11 @@ fn extract_request_key(
 ) -> Option<proto::generated::RequestKey> {
     match &response.kind {
         Some(Kind::NodeContainers(c)) => c.request_key.clone(),
+        Some(Kind::NodeContainersWithStatus(c)) => c.request_key.clone(),
+        Some(Kind::ContainerStatus(c)) => c.request_key.clone(),
+        Some(Kind::ContainerLogs(c)) => c.request_key.clone(),
+        Some(Kind::ContainerAction(c)) => c.request_key.clone(),
+        Some(Kind::Error(c)) => c.request_key.clone(),
         _ => None,
     }
 }

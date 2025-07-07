@@ -1,11 +1,14 @@
 use std::error::Error;
 
 use futures_util::StreamExt;
-use lib_node_containers::{get_docker_containers, watch_container_changes};
+use lib_node_containers::{
+    delete_container, get_container_logs, get_container_status, get_docker_containers,
+    start_container, stop_container, watch_container_changes,
+};
 use proto::generated::{
-    AuthRequest, Envelope, NodeContainers, NodeResponse, RequestKey, RequestType, ServerCommand,
-    conversation_service_client::ConversationServiceClient, envelope::Payload, node_command,
-    node_response, request_key::RequestId, server_command, server_response,
+    AuthRequest, Envelope, NodeContainers, NodeError, NodeResponse, RequestKey, RequestType,
+    ServerCommand, conversation_service_client::ConversationServiceClient, envelope::Payload,
+    node_command, node_response, request_key::RequestId, server_command, server_response,
 };
 use tokio::sync::{mpsc, oneshot};
 use tokio_stream;
@@ -73,12 +76,10 @@ pub async fn run_grpc_client(
                         Some(Ok(envelope)) => {
                             if let Err(e) = process_incoming_message(envelope, &tx_clone).await {
                                 error!("Error processing message: {}", e);
-                                break;
                             }
                         }
                         Some(Err(e)) => {
                             error!("Stream error: {}", e);
-                            break;
                         }
                         None => {
                             info!("Stream closed by server");
@@ -126,6 +127,259 @@ pub async fn handle_get_client_containers(
     Ok(())
 }
 
+pub async fn handle_get_client_containers_with_status(
+    tx: &mpsc::Sender<Envelope>,
+    request_id: String,
+) -> Result<(), String> {
+    let containers = get_docker_containers().await.unwrap_or_default();
+    let mut containers_with_status = Vec::new();
+
+    // Get status for each container
+    for container_id in containers {
+        if let Ok(status) = get_container_status(&container_id).await {
+            containers_with_status.push(status);
+        }
+    }
+
+    let response = Envelope {
+        payload: Some(Payload::NodeResponse(NodeResponse {
+            kind: Some(NodeResponseKind::NodeContainersWithStatus(
+                proto::generated::NodeContainersWithStatus {
+                    request_key: Some(RequestKey {
+                        request_type: RequestType::GetContainersWithStatus as i32,
+                        request_id: Some(RequestId::Value(request_id.clone())),
+                    }),
+                    containers: containers_with_status,
+                },
+            )),
+        })),
+    };
+
+    tx.send(response)
+        .await
+        .map_err(|_| String::from("Failed to send response"))?;
+
+    Ok(())
+}
+
+pub async fn handle_get_container_status(
+    tx: &mpsc::Sender<Envelope>,
+    request_id: String,
+    container_id: String,
+) -> Result<(), String> {
+    match get_container_status(&container_id).await {
+        Ok(mut status) => {
+            status.request_key = Some(RequestKey {
+                request_type: RequestType::GetContainerStatus as i32,
+                request_id: Some(RequestId::Value(request_id)),
+            });
+
+            let response = Envelope {
+                payload: Some(Payload::NodeResponse(NodeResponse {
+                    kind: Some(NodeResponseKind::ContainerStatus(status)),
+                })),
+            };
+
+            tx.send(response)
+                .await
+                .map_err(|_| String::from("Failed to send response"))?;
+        }
+        Err(e) => {
+            error!("Failed to get container status: {}", e);
+
+            let response = Envelope {
+                payload: Some(Payload::NodeResponse(NodeResponse {
+                    kind: Some(NodeResponseKind::Error(NodeError {
+                        request_key: Some(RequestKey {
+                            request_type: RequestType::GetContainerStatus as i32,
+                            request_id: Some(RequestId::Value(request_id)),
+                        }),
+                        message: e.to_string(),
+                    })),
+                })),
+            };
+
+            tx.send(response)
+                .await
+                .map_err(|_| String::from("Failed to send error response"))?;
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn handle_start_container(
+    tx: &mpsc::Sender<Envelope>,
+    request_id: String,
+    container_id: String,
+) -> Result<(), String> {
+    match start_container(&container_id).await {
+        Ok(mut action) => {
+            action.request_key = Some(RequestKey {
+                request_type: RequestType::StartContainer as i32,
+                request_id: Some(RequestId::Value(request_id)),
+            });
+
+            let response = Envelope {
+                payload: Some(Payload::NodeResponse(NodeResponse {
+                    kind: Some(NodeResponseKind::ContainerAction(action)),
+                })),
+            };
+
+            tx.send(response)
+                .await
+                .map_err(|_| String::from("Failed to send response"))?;
+        }
+        Err(e) => {
+            error!("Failed to start container: {}", e);
+
+            let response = Envelope {
+                payload: Some(Payload::NodeResponse(NodeResponse {
+                    kind: Some(NodeResponseKind::Error(NodeError {
+                        request_key: Some(RequestKey {
+                            request_type: RequestType::StartContainer as i32,
+                            request_id: Some(RequestId::Value(request_id)),
+                        }),
+                        message: e.to_string(),
+                    })),
+                })),
+            };
+
+            tx.send(response)
+                .await
+                .map_err(|_| String::from("Failed to send error response"))?;
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn handle_stop_container(
+    tx: &mpsc::Sender<Envelope>,
+    request_id: String,
+    container_id: String,
+) -> Result<(), String> {
+    match stop_container(&container_id).await {
+        Ok(mut action) => {
+            action.request_key = Some(RequestKey {
+                request_type: RequestType::StopContainer as i32,
+                request_id: Some(RequestId::Value(request_id)),
+            });
+
+            let response = Envelope {
+                payload: Some(Payload::NodeResponse(NodeResponse {
+                    kind: Some(NodeResponseKind::ContainerAction(action)),
+                })),
+            };
+
+            tx.send(response)
+                .await
+                .map_err(|_| String::from("Failed to send response"))?;
+        }
+        Err(e) => {
+            error!("Failed to stop container: {}", e);
+
+            let response = Envelope {
+                payload: Some(Payload::NodeResponse(NodeResponse {
+                    kind: Some(NodeResponseKind::Error(NodeError {
+                        request_key: Some(RequestKey {
+                            request_type: RequestType::StopContainer as i32,
+                            request_id: Some(RequestId::Value(request_id)),
+                        }),
+                        message: e.to_string(),
+                    })),
+                })),
+            };
+
+            tx.send(response)
+                .await
+                .map_err(|_| String::from("Failed to send error response"))?;
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn handle_delete_container(
+    tx: &mpsc::Sender<Envelope>,
+    request_id: String,
+    container_id: String,
+) -> Result<(), String> {
+    match delete_container(&container_id).await {
+        Ok(mut action) => {
+            action.request_key = Some(RequestKey {
+                request_type: RequestType::DeleteContainer as i32,
+                request_id: Some(RequestId::Value(request_id)),
+            });
+
+            let response = Envelope {
+                payload: Some(Payload::NodeResponse(NodeResponse {
+                    kind: Some(NodeResponseKind::ContainerAction(action)),
+                })),
+            };
+
+            tx.send(response)
+                .await
+                .map_err(|_| String::from("Failed to send response"))?;
+        }
+        Err(e) => {
+            error!("Failed to delete container: {}", e);
+
+            let response = Envelope {
+                payload: Some(Payload::NodeResponse(NodeResponse {
+                    kind: Some(NodeResponseKind::Error(NodeError {
+                        request_key: Some(RequestKey {
+                            request_type: RequestType::DeleteContainer as i32,
+                            request_id: Some(RequestId::Value(request_id)),
+                        }),
+                        message: e.to_string(),
+                    })),
+                })),
+            };
+
+            tx.send(response)
+                .await
+                .map_err(|_| String::from("Failed to send error response"))?;
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn handle_get_container_logs(
+    tx: &mpsc::Sender<Envelope>,
+    request_id: String,
+    container_id: String,
+    tail: Option<i32>,
+    follow: bool,
+    since: Option<String>,
+) -> Result<(), String> {
+    match get_container_logs(&container_id, tail, follow, since).await {
+        Ok(mut logs) => {
+            logs.request_key = Some(RequestKey {
+                request_type: RequestType::GetContainerLogs as i32,
+                request_id: Some(RequestId::Value(request_id)),
+            });
+
+            let response = Envelope {
+                payload: Some(Payload::NodeResponse(NodeResponse {
+                    kind: Some(NodeResponseKind::ContainerLogs(logs)),
+                })),
+            };
+
+            tx.send(response)
+                .await
+                .map_err(|_| String::from("Failed to send response"))?;
+        }
+        Err(e) => {
+            error!("Failed to get container logs: {}", e);
+            return Err(e.to_string());
+        }
+    }
+
+    Ok(())
+}
+
 pub async fn process_incoming_message(
     envelope: Envelope,
     tx: &mpsc::Sender<Envelope>,
@@ -134,6 +388,46 @@ pub async fn process_incoming_message(
         Some(Payload::NodeCommand(cmd)) => match cmd.kind {
             Some(NodeCommandKind::GetNodeContainers(get_containers_request)) => {
                 handle_get_client_containers(tx, get_containers_request.request_id).await?;
+            }
+            Some(NodeCommandKind::GetNodeContainersWithStatus(
+                get_containers_with_status_request,
+            )) => {
+                handle_get_client_containers_with_status(
+                    tx,
+                    get_containers_with_status_request.request_id,
+                )
+                .await?;
+            }
+            Some(NodeCommandKind::GetContainerStatus(get_status_request)) => {
+                handle_get_container_status(
+                    tx,
+                    get_status_request.request_id,
+                    get_status_request.container_id,
+                )
+                .await?;
+            }
+            Some(NodeCommandKind::StartContainer(start_request)) => {
+                handle_start_container(tx, start_request.request_id, start_request.container_id)
+                    .await?;
+            }
+            Some(NodeCommandKind::StopContainer(stop_request)) => {
+                handle_stop_container(tx, stop_request.request_id, stop_request.container_id)
+                    .await?;
+            }
+            Some(NodeCommandKind::DeleteContainer(delete_request)) => {
+                handle_delete_container(tx, delete_request.request_id, delete_request.container_id)
+                    .await?;
+            }
+            Some(NodeCommandKind::GetContainerLogs(logs_request)) => {
+                handle_get_container_logs(
+                    tx,
+                    logs_request.request_id,
+                    logs_request.container_id,
+                    Some(logs_request.tail),
+                    logs_request.follow,
+                    Some(logs_request.since),
+                )
+                .await?;
             }
             _ => info!("Unknown client command"),
         },
