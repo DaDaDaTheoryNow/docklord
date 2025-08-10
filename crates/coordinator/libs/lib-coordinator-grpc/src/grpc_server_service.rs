@@ -235,6 +235,8 @@ async fn handle_node_response(
             let envelope = Envelope {
                 payload: Some(Payload::NodeResponse(resp)),
             };
+
+            // TODO: fix
             if node.send(envelope).is_err() {
                 warn!("Node channel closed for {}", id);
             }

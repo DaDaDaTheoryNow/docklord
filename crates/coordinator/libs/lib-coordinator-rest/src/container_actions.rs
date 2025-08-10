@@ -67,7 +67,7 @@ pub async fn start_container(
             if let Some(err_msg) = extract_node_error_from_response(&response) {
                 pending.remove(&(request_id.clone(), RequestType::StartContainer as i32));
                 let err = ApiError {
-                    req_uuid: request_id.clone(),
+                    req_id: request_id.clone(),
                     error: ApiErrorDetail {
                         message: "Node error".to_string(),
                         detail: err_msg,
@@ -88,7 +88,7 @@ pub async fn start_container(
         Ok(Err(_)) => {
             pending.remove(&(request_id.clone(), RequestType::StartContainer as i32));
             let err = ApiError {
-                req_uuid: request_id.clone(),
+                req_id: request_id.clone(),
                 error: ApiErrorDetail {
                     message: "Response channel closed".to_string(),
                     detail: "Node dropped oneshot channel".to_string(),
@@ -99,7 +99,7 @@ pub async fn start_container(
         Err(_) => {
             pending.remove(&(request_id.clone(), RequestType::StartContainer as i32));
             let err = ApiError {
-                req_uuid: request_id.clone(),
+                req_id: request_id.clone(),
                 error: ApiErrorDetail {
                     message: "Timeout waiting for node response".to_string(),
                     detail: "Timeout waiting for node response".to_string(),
@@ -160,7 +160,7 @@ pub async fn stop_container(
             if let Some(err_msg) = extract_node_error_from_response(&response) {
                 pending.remove(&(request_id.clone(), RequestType::StopContainer as i32));
                 let err = ApiError {
-                    req_uuid: request_id.clone(),
+                    req_id: request_id.clone(),
                     error: ApiErrorDetail {
                         message: "Node error".to_string(),
                         detail: err_msg,
@@ -181,7 +181,7 @@ pub async fn stop_container(
         Ok(Err(_)) => {
             pending.remove(&(request_id.clone(), RequestType::StopContainer as i32));
             let err = ApiError {
-                req_uuid: request_id.clone(),
+                req_id: request_id.clone(),
                 error: ApiErrorDetail {
                     message: "Response channel closed".to_string(),
                     detail: "Node dropped oneshot channel".to_string(),
@@ -192,7 +192,7 @@ pub async fn stop_container(
         Err(_) => {
             pending.remove(&(request_id.clone(), RequestType::StopContainer as i32));
             let err = ApiError {
-                req_uuid: request_id.clone(),
+                req_id: request_id.clone(),
                 error: ApiErrorDetail {
                     message: "Timeout waiting for node response".to_string(),
                     detail: "Timeout waiting for node response".to_string(),
@@ -253,7 +253,7 @@ pub async fn delete_container(
             if let Some(err_msg) = extract_node_error_from_response(&response) {
                 pending.remove(&(request_id.clone(), RequestType::DeleteContainer as i32));
                 let err = ApiError {
-                    req_uuid: request_id.clone(),
+                    req_id: request_id.clone(),
                     error: ApiErrorDetail {
                         message: "Node error".to_string(),
                         detail: err_msg,
@@ -274,7 +274,7 @@ pub async fn delete_container(
         Ok(Err(_)) => {
             pending.remove(&(request_id.clone(), RequestType::DeleteContainer as i32));
             let err = ApiError {
-                req_uuid: request_id.clone(),
+                req_id: request_id.clone(),
                 error: ApiErrorDetail {
                     message: "Response channel closed".to_string(),
                     detail: "Node dropped oneshot channel".to_string(),
@@ -285,7 +285,7 @@ pub async fn delete_container(
         Err(_) => {
             pending.remove(&(request_id.clone(), RequestType::DeleteContainer as i32));
             let err = ApiError {
-                req_uuid: request_id.clone(),
+                req_id: request_id.clone(),
                 error: ApiErrorDetail {
                     message: "Timeout waiting for node response".to_string(),
                     detail: "Timeout waiting for node response".to_string(),

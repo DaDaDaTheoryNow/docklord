@@ -32,7 +32,7 @@ struct ApiErrorDetail {
 
 #[derive(Serialize)]
 struct ApiError {
-    req_uuid: String,
+    req_id: String,
     error: ApiErrorDetail,
 }
 
@@ -90,7 +90,7 @@ pub async fn get_container_logs(
             if let Some(err_msg) = extract_node_error_from_response(&response) {
                 pending.remove(&(request_id.clone(), RequestType::GetContainerLogs as i32));
                 let err = ApiError {
-                    req_uuid: request_id.clone(),
+                    req_id: request_id.clone(),
                     error: ApiErrorDetail {
                         message: "Node error".to_string(),
                         detail: err_msg,
@@ -110,7 +110,7 @@ pub async fn get_container_logs(
         Ok(Err(_)) => {
             pending.remove(&(request_id.clone(), RequestType::GetContainerLogs as i32));
             let err = ApiError {
-                req_uuid: request_id.clone(),
+                req_id: request_id.clone(),
                 error: ApiErrorDetail {
                     message: "Response channel closed".to_string(),
                     detail: "Node dropped oneshot channel".to_string(),
@@ -121,7 +121,7 @@ pub async fn get_container_logs(
         Err(_) => {
             pending.remove(&(request_id.clone(), RequestType::GetContainerLogs as i32));
             let err = ApiError {
-                req_uuid: request_id.clone(),
+                req_id: request_id.clone(),
                 error: ApiErrorDetail {
                     message: "Timeout waiting for node response".to_string(),
                     detail: "Timeout waiting for node response".to_string(),

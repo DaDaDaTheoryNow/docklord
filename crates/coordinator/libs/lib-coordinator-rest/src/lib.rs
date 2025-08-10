@@ -22,6 +22,6 @@ struct ApiErrorDetail {
 
 #[derive(Deserialize, Serialize)]
 struct ApiError {
-    req_uuid: String,
+    req_id: String,
     error: ApiErrorDetail,
 }

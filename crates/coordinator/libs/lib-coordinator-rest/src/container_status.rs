@@ -66,7 +66,7 @@ pub async fn get_container_status(
             if let Some(err_msg) = extract_node_error_from_response(&response) {
                 pending.remove(&(request_id.clone(), RequestType::GetContainerStatus as i32));
                 let err = ApiError {
-                    req_uuid: request_id.clone(),
+                    req_id: request_id.clone(),
                     error: ApiErrorDetail {
                         message: "Node error".to_string(),
                         detail: err_msg,
@@ -77,7 +77,7 @@ pub async fn get_container_status(
 
             let container_status = extract_container_status_from_response(&response);
             let body = json!({
-                "id": request_id,
+                "req_id": request_id,
                 "container_id": container_id,
                 "status": container_status,
             });
@@ -86,7 +86,7 @@ pub async fn get_container_status(
         Ok(Err(_)) => {
             pending.remove(&(request_id.clone(), RequestType::GetContainerStatus as i32));
             let err = ApiError {
-                req_uuid: request_id.clone(),
+                req_id: request_id.clone(),
                 error: ApiErrorDetail {
                     message: "Response channel closed".to_string(),
                     detail: "Node dropped oneshot channel".to_string(),
@@ -97,7 +97,7 @@ pub async fn get_container_status(
         Err(_) => {
             pending.remove(&(request_id.clone(), RequestType::GetContainerStatus as i32));
             let err = ApiError {
-                req_uuid: request_id.clone(),
+                req_id: request_id.clone(),
                 error: ApiErrorDetail {
                     message: "Timeout waiting for node response".to_string(),
                     detail: "Timeout waiting for node response".to_string(),

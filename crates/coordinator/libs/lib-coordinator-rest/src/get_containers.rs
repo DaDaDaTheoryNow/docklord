@@ -79,7 +79,7 @@ pub async fn get_containers(
                 "error": {
                     "message": "Response channel closed",
                     "data": {
-                        "req_uuid": request_id,
+                        "req_id": request_id,
                         "detail": "Node dropped oneshot channel"
                     }
                 }
@@ -91,7 +91,7 @@ pub async fn get_containers(
                 "error": {
                     "message": "No response from node",
                     "data": {
-                        "req_uuid": request_id,
+                        "req_id": request_id,
                         "detail": "Timeout waiting for node response"
                     }
                 }
