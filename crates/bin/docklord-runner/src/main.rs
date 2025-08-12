@@ -83,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             info!("Coordinator address: {}", coordinator_addr);
             println!("");
 
-            node_runner::run(&coordinator_addr, &node_id, &password).await?;
+            node_runner::run(&coordinator_addr, &node_id, &password, false).await?;
         }
         "self-hosted" => {
             info!("Running Self-Hosted Node (Coordinator + Node)");
@@ -111,8 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             println!("");
 
             let node_handle = tokio::spawn(async move {
-                node_runner::run(&local_coordinator_addr, &node_id, &password).await
-                // node_runner::run(&local_coordinator_addr, "1", "123").await
+                node_runner::run(&local_coordinator_addr, &node_id, &password, true).await
             });
 
             tokio::select! {
