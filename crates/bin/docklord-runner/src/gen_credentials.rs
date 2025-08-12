@@ -12,7 +12,7 @@ pub fn generate_secure_password() -> String {
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
                             abcdefghijklmnopqrstuvwxyz\
                             0123456789\
-                            !*";
+                            ";
 
     let mut rng = rng();
     (0..24)
