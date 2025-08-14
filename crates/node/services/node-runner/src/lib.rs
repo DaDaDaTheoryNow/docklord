@@ -28,6 +28,13 @@ Example:\n\
             .next()
             .unwrap_or(coordinator_address); // убираем порт
 
+        // Replace docklord-coordinator with localhost in the example URL
+        let example_host = if host_only == "docklord-coordinator" {
+            "localhost"
+        } else {
+            host_only
+        };
+
         println!(
             "==============================\n\
 🚀 Node started\n\
@@ -39,7 +46,7 @@ Credentials for Coordinator-authenticated requests:\n\
 Example:\n\
   curl \"http://{3}:3000/api/containers?node_id={1}&password={2}\"\n\
 ==============================",
-            coordinator_address, node_id, password, host_only
+            coordinator_address, node_id, password, example_host
         );
     }
 
