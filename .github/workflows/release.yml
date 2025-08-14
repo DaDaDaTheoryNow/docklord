@@ -1,0 +1,167 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags (e.g., v1.0.0)
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+  CARGO_NET_RETRY: 10
+  RUSTFLAGS: -D warnings
+  RUSTUP_MAX_RETRIES: 10
+
+jobs:
+  build:
+    name: Build Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: docklord-linux-x86_64
+            release_os: linux
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact: docklord-linux-aarch64
+            release_os: linux
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: docklord-macos-x86_64
+            release_os: macos
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: docklord-macos-aarch64
+            release_os: macos
+          - os: windows-latest
+            target: x86_64-pc-windows-gnu
+            artifact: docklord-windows-x86_64.exe
+            release_os: windows
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+          profile: minimal
+          components: rustfmt, clippy
+
+      - name: Install cross-compilation toolchain (Linux)
+        if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ]; then
+            sudo apt-get install -y gcc-x86-64-linux-gnu
+          else
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          fi
+
+      - name: Install cross-compilation toolchain (Windows)
+        if: matrix.target == 'x86_64-pc-windows-gnu'
+        run: |
+          rustup target add x86_64-pc-windows-gnu
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64
+
+      - name: Build release
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target ${{ matrix.target }}
+
+      - name: Strip debug symbols (Linux/macOS)
+        if: matrix.target != 'x86_64-pc-windows-gnu'
+        run: |
+          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ] || [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            strip target/${{ matrix.target }}/release/docklord-runner
+          elif [ "${{ matrix.target }}" = "x86_64-apple-darwin" ] || [ "${{ matrix.target }}" = "aarch64-apple-darwin" ]; then
+            strip -S target/${{ matrix.target }}/release/docklord-runner
+          fi
+
+      - name: Rename binary for Windows
+        if: matrix.target == 'x86_64-pc-windows-gnu'
+        run: |
+          mv target/${{ matrix.target }}/release/docklord-runner.exe target/${{ matrix.target }}/release/${{ matrix.artifact }}
+
+      - name: Rename binary for Unix-like systems
+        if: matrix.target != 'x86_64-pc-windows-gnu'
+        run: |
+          mv target/${{ matrix.target }}/release/docklord-runner target/${{ matrix.target }}/release/${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: target/${{ matrix.target }}/release/${{ matrix.artifact }}
+          if-no-files-found: error
+
+  create-release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Get release version
+        id: get_version
+        run: |
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
+          body: |
+            ### What's Changed
+            
+            Full Changelog: ${{ github.server_url }}/${{ github.repository }}/compare/v0.0.1...${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Upload Release Assets
+        uses: AButler/upload-release-assets@v2.0
+        with:
+          files: 'artifacts/*'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          upload-url: ${{ steps.create_release.outputs.upload_url }}
+
+  publish-crate:
+    name: Publish to crates.io
+    needs: create-release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+
+      - name: Publish to crates.io
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --no-verify --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
